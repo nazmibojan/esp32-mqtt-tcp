@@ -1,10 +1,6 @@
-# ESP-MQTT sample application
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+# ESP32-MQTT publish sample
 
-This example connects to the broker URI selected using `make menuconfig` (using mqtt tcp transport) and as a demonstration subscribes/unsubscribes and send a message on certain topic.
-Note: If the URI equals `FROM_STDIN` then the broker address is read from stdin upon application startup (used for testing)
-
-It uses ESP-MQTT library which implements mqtt client to connect to mqtt broker.
+This sample uses ESP-MQTT library which implements mqtt client to connect to mqtt broker. It will publish current time which get from ntp server.
 
 ## How to use example
 
@@ -12,22 +8,13 @@ It uses ESP-MQTT library which implements mqtt client to connect to mqtt broker.
 
 This example can be executed on any ESP32 board, the only required interface is WiFi and connection to internet.
 
-### Configure the project
-
-```
-make menuconfig
-```
-
-* Set serial port under Serial Flasher Options.
-
-* Set ssid and password for the board to connect to AP.
-
 ### Build and Flash
 
 Build the project and flash it to the board, then run monitor tool to view serial output:
 
 ```
-make -j4 flash monitor
+idf.py build
+idf.py -p [COM] flash monitor
 ```
 
 (To exit the serial monitor, type ``Ctrl-]``.)
@@ -35,27 +22,30 @@ make -j4 flash monitor
 See the Getting Started Guide for full steps to configure and use ESP-IDF to build projects.
 
 ## Example Output
-
 ```
-I (3714) event: sta ip: 192.168.0.139, mask: 255.255.255.0, gw: 192.168.0.2
-I (3714) system_api: Base MAC address is not set, read default base MAC address from BLK0 of EFUSE
-I (3964) MQTT_CLIENT: Sending MQTT CONNECT message, type: 1, id: 0000
-I (4164) MQTT_EXAMPLE: MQTT_EVENT_CONNECTED
-I (4174) MQTT_EXAMPLE: sent publish successful, msg_id=41464
-I (4174) MQTT_EXAMPLE: sent subscribe successful, msg_id=17886
-I (4174) MQTT_EXAMPLE: sent subscribe successful, msg_id=42970
-I (4184) MQTT_EXAMPLE: sent unsubscribe successful, msg_id=50241
-I (4314) MQTT_EXAMPLE: MQTT_EVENT_PUBLISHED, msg_id=41464
-I (4484) MQTT_EXAMPLE: MQTT_EVENT_SUBSCRIBED, msg_id=17886
-I (4484) MQTT_EXAMPLE: sent publish successful, msg_id=0
-I (4684) MQTT_EXAMPLE: MQTT_EVENT_SUBSCRIBED, msg_id=42970
-I (4684) MQTT_EXAMPLE: sent publish successful, msg_id=0
-I (4884) MQTT_CLIENT: deliver_publish, message_length_read=19, message_length=19
-I (4884) MQTT_EXAMPLE: MQTT_EVENT_DATA
-TOPIC=/topic/qos0
-DATA=data
-I (5194) MQTT_CLIENT: deliver_publish, message_length_read=19, message_length=19
-I (5194) MQTT_EXAMPLE: MQTT_EVENT_DATA
-TOPIC=/topic/qos0
-DATA=data
+I (613) wifi: AP's beacon interval = 102400 us, DTIM period = 1
+I (1223) event: sta ip: 20.4.110.85, mask: 255.255.255.0, gw: 20.4.110.1
+I (1223) system_api: Base MAC address is not set, read default base MAC address from BLK0 of EFUSE
+I (1233) ntp.c: Initializing SNTP
+I (1233) MQTT_EXAMPLE: Other event id:7
+I (1243) ntp.c: Time is not set yet. Getting time over NTP.
+I (1243) ntp.c: Waiting for system time to be set... (1/5)
+I (2563) MQTT_CLIENT: Sending MQTT CONNECT message, type: 1, id: 0000
+I (2873) MQTT_EXAMPLE: MQTT_EVENT_CONNECTED
+I (2883) MQTT_EXAMPLE: sent subscribe successful, msg_id=22233
+I (3253) MQTT_EXAMPLE: MQTT_EVENT_SUBSCRIBED, msg_id=22233
+2020/2/3 17:16:5
+I (3603) MQTT_EXAMPLE: MQTT_EVENT_PUBLISHED, msg_id=25061
+2020/2/3 17:16:15
+I (13633) MQTT_EXAMPLE: MQTT_EVENT_PUBLISHED, msg_id=42356
+2020/2/3 17:16:25
+I (23563) MQTT_EXAMPLE: MQTT_EVENT_PUBLISHED, msg_id=44928
+2020/2/3 17:16:35
+I (33593) MQTT_EXAMPLE: MQTT_EVENT_PUBLISHED, msg_id=43087
+2020/2/3 17:16:45
+I (43633) MQTT_EXAMPLE: MQTT_EVENT_PUBLISHED, msg_id=36805
+2020/2/3 17:16:55
+I (53563) MQTT_EXAMPLE: MQTT_EVENT_PUBLISHED, msg_id=50469
+2020/2/3 17:17:5
+I (63593) MQTT_EXAMPLE: MQTT_EVENT_PUBLISHED, msg_id=49868
 ```

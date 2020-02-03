@@ -2,10 +2,12 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
+#include <stdlib.h>
 #include "esp_wifi.h"
 #include "esp_system.h"
 #include "nvs_flash.h"
 #include "esp_event_loop.h"
+
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -19,12 +21,19 @@
 
 #include "esp_log.h"
 #include "mqtt_client.h"
+#include "ntp.h"
+
+#define WIFI_SSID "CONNEXT-AXIATA"
+#define WIFI_PASSWORD "4xiatadigitallabs18"
+
+#define BROKER_URL "mqtt://nglettrq:RVPcR2AQJEV1@hairdresser.cloudmqtt.com:18848"
 
 static const char *TAG = "MQTT_EXAMPLE";
 
 static EventGroupHandle_t wifi_event_group;
+esp_mqtt_client_handle_t client = NULL;
 const static int CONNECTED_BIT = BIT0;
-
+char time_date[50];
 
 static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 {
@@ -34,17 +43,17 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
     switch (event->event_id) {
         case MQTT_EVENT_CONNECTED:
             ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
-            msg_id = esp_mqtt_client_publish(client, "/topic/qos1", "data_3", 0, 1, 0);
-            ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
+            // msg_id = esp_mqtt_client_publish(client, "/topic/qos1", "data_3", 0, 1, 0);
+            // ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
 
-            msg_id = esp_mqtt_client_subscribe(client, "/topic/qos0", 0);
+            msg_id = esp_mqtt_client_subscribe(client, "/ADLDev-1/relay_control", 0);
             ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
 
-            msg_id = esp_mqtt_client_subscribe(client, "/topic/qos1", 1);
-            ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+            // msg_id = esp_mqtt_client_subscribe(client, "/topic/qos1", 1);
+            // ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
 
-            msg_id = esp_mqtt_client_unsubscribe(client, "/topic/qos1");
-            ESP_LOGI(TAG, "sent unsubscribe successful, msg_id=%d", msg_id);
+            // msg_id = esp_mqtt_client_unsubscribe(client, "/topic/qos1");
+            // ESP_LOGI(TAG, "sent unsubscribe successful, msg_id=%d", msg_id);
             break;
         case MQTT_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
@@ -52,8 +61,8 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 
         case MQTT_EVENT_SUBSCRIBED:
             ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-            msg_id = esp_mqtt_client_publish(client, "/topic/qos0", "data", 0, 0, 0);
-            ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
+            // msg_id = esp_mqtt_client_publish(client, "/topic/qos0", "data", 0, 0, 0);
+            // ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
             break;
         case MQTT_EVENT_UNSUBSCRIBED:
             ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
@@ -106,13 +115,13 @@ static void wifi_init(void)
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
     wifi_config_t wifi_config = {
         .sta = {
-            .ssid = CONFIG_WIFI_SSID,
-            .password = CONFIG_WIFI_PASSWORD,
+            .ssid = WIFI_SSID,
+            .password = WIFI_PASSWORD,
         },
     };
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
-    ESP_LOGI(TAG, "start the WIFI SSID:[%s]", CONFIG_WIFI_SSID);
+    ESP_LOGI(TAG, "start the WIFI SSID:[%s]", WIFI_SSID);
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_LOGI(TAG, "Waiting for wifi");
     xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
@@ -121,42 +130,19 @@ static void wifi_init(void)
 static void mqtt_app_start(void)
 {
     esp_mqtt_client_config_t mqtt_cfg = {
-        .uri = CONFIG_BROKER_URL,
+        .uri = BROKER_URL,
         .event_handle = mqtt_event_handler,
         // .user_context = (void *)your_context
     };
 
-#if CONFIG_BROKER_URL_FROM_STDIN
-    char line[128];
-
-    if (strcmp(mqtt_cfg.uri, "FROM_STDIN") == 0) {
-        int count = 0;
-        printf("Please enter url of mqtt broker\n");
-        while (count < 128) {
-            int c = fgetc(stdin);
-            if (c == '\n') {
-                line[count] = '\0';
-                break;
-            } else if (c > 0 && c < 127) {
-                line[count] = c;
-                ++count;
-            }
-            vTaskDelay(10 / portTICK_PERIOD_MS);
-        }
-        mqtt_cfg.uri = line;
-        printf("Broker url: %s\n", line);
-    } else {
-        ESP_LOGE(TAG, "Configuration mismatch: wrong broker url");
-        abort();
-    }
-#endif /* CONFIG_BROKER_URL_FROM_STDIN */
-
-    esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
+    client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_start(client);
 }
 
 void app_main()
 {
+    struct tm timenow;
+
     ESP_LOGI(TAG, "[APP] Startup..");
     ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
     ESP_LOGI(TAG, "[APP] IDF version: %s", esp_get_idf_version());
@@ -171,4 +157,16 @@ void app_main()
     nvs_flash_init();
     wifi_init();
     mqtt_app_start();
+    ntp_init();
+
+    // looping to get epoch time
+    while(1)
+    {
+        timenow = ntp_obtain_datetime();
+        sprintf(time_date, "%d/%d/%d %d:%d:%d", timenow.tm_year + 1900, timenow.tm_mon + 1, timenow.tm_mday, timenow.tm_hour, timenow.tm_min, timenow.tm_sec);
+        printf("%s", time_date);
+        printf("\r\n"); 
+        esp_mqtt_client_publish(client, "ADLDev-1/relay_status", time_date, 0, 1, 0);
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
+    }
 }
