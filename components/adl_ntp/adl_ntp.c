@@ -1,6 +1,6 @@
-#include "ntp.h"
+#include "adl_ntp.h"
 
-static const char *NTP_FILE = "ntp.c";
+static const char *NTP_FILE = "adl_ntp.c";
 
 /**
  * @brief Initialize NTP client in order to obtain current datetime

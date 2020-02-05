@@ -1,9 +1,10 @@
-#include "uart.h"
+#include "adl_uart.h"
+#include "adl_mqtt.h"
 
 #define BUF_SIZE (1024)
 #define RD_BUF_SIZE (BUF_SIZE)
 
-static const char *TAG = "uart.c";
+static const char *TAG = "adl_uart.c";
 QueueHandle_t uart_arduino_queue = NULL;
 
 static void uart_event_task(void *pvParameters)
@@ -24,7 +25,7 @@ static void uart_event_task(void *pvParameters)
                     ESP_LOGI(TAG, "[UART DATA]: %d", event.size);
                     uart_read_bytes(ARDUINO_UART, dtmp, event.size, portMAX_DELAY);
                     ESP_LOGI(TAG, "[DATA EVT]: %s", dtmp);
-                    // uart_write_bytes(ARDUINO_UART, (const char*) dtmp, event.size);
+                    mqtt_pub_relay_status(dtmp);
                     break;
                 //Event of HW FIFO overflow detected
                 case UART_FIFO_OVF:
@@ -104,7 +105,7 @@ void uart_arduino_init(void)
     uart_driver_install(ARDUINO_UART, 1024, 512, 10, &uart_arduino_queue, 0);
 
     //Create a task to handler UART event from ISR
-    xTaskCreate(uart_event_task, "uart_event_task", 2048, NULL, 12, NULL);
+    xTaskCreate(uart_event_task, "uart_event_task", 4096, NULL, 12, NULL);
 }
 
 

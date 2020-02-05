@@ -1,5 +1,5 @@
-#ifndef __NTP_H__
-#define __NTP_H__
+#ifndef __ADL_NTP_H__
+#define __ADL_NTP_H__
 
 #include <string.h>
 #include <time.h>

@@ -1,5 +1,5 @@
-#ifndef __UART_H___
-#define __UART_H___
+#ifndef __ADL_MQTT_H___
+#define __ADL_MQTT_H___
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,12 +9,9 @@
 #include "esp_system.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
-#include "driver/uart.h"
-#include "driver/gpio.h"
+#include "mqtt_client.h"
 
-#define ARDUINO_UART 	UART_NUM_2
-#define ARDUINO_BAUD 	9600
-
-void uart_arduino_init(void);
+void mqtt_app_start(void);
+void mqtt_pub_relay_status(uint8_t * relay_state);
 
 #endif

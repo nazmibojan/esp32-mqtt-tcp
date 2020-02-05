@@ -8,7 +8,6 @@
 #include "nvs_flash.h"
 #include "esp_event_loop.h"
 
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -20,66 +19,17 @@
 #include "lwip/netdb.h"
 
 #include "esp_log.h"
-#include "mqtt_client.h"
-#include "ntp.h"
-#include "uart.h"
+#include "adl_mqtt.h"
+#include "adl_ntp.h"
+#include "adl_uart.h"
 
 #define WIFI_SSID "CONNEXT-AXIATA"
 #define WIFI_PASSWORD "4xiatadigitallabs18"
 
-#define BROKER_URL "mqtt://nglettrq:RVPcR2AQJEV1@hairdresser.cloudmqtt.com:18848"
+static EventGroupHandle_t wifi_event_group;
 
 static const char *TAG = "MQTT_EXAMPLE";
-
-static EventGroupHandle_t wifi_event_group;
-esp_mqtt_client_handle_t client = NULL;
 const static int CONNECTED_BIT = BIT0;
-char time_date[50];
-
-static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
-{
-    esp_mqtt_client_handle_t client = event->client;
-    int msg_id;
-    // your_context_t *context = event->context;
-    switch (event->event_id) {
-        case MQTT_EVENT_CONNECTED:
-            ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
-            msg_id = esp_mqtt_client_subscribe(client, "/ADLDev-1/relay_control", 0);
-            ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
-            break;
-
-        case MQTT_EVENT_DISCONNECTED:
-            ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
-            break;
-
-        case MQTT_EVENT_SUBSCRIBED:
-            ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-            break;
-
-        case MQTT_EVENT_UNSUBSCRIBED:
-            ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
-            break;
-
-        case MQTT_EVENT_PUBLISHED:
-            ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
-            break;
-
-        case MQTT_EVENT_DATA:
-            ESP_LOGI(TAG, "MQTT_EVENT_DATA");
-            printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
-            printf("DATA=%.*s\r\n", event->data_len, event->data);
-            break;
-
-        case MQTT_EVENT_ERROR:
-            ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
-            break;
-
-        default:
-            ESP_LOGI(TAG, "Other event id:%d", event->event_id);
-            break;
-    }
-    return ESP_OK;
-}
 
 static esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
 {
@@ -123,21 +73,8 @@ static void wifi_init(void)
     xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
 }
 
-static void mqtt_app_start(void)
-{
-    esp_mqtt_client_config_t mqtt_cfg = {
-        .uri = BROKER_URL,
-        .event_handle = mqtt_event_handler,
-        // .user_context = (void *)your_context
-    };
-
-    client = esp_mqtt_client_init(&mqtt_cfg);
-    esp_mqtt_client_start(client);
-}
-
 void app_main()
 {
-    struct tm timenow;
     char* request_str = "get_status\r\n";
 
     ESP_LOGI(TAG, "[APP] Startup..");
@@ -161,11 +98,6 @@ void app_main()
     while(1)
     {
         uart_write_bytes(ARDUINO_UART, (const char*)request_str, strlen(request_str));
-        timenow = ntp_obtain_datetime();
-        sprintf(time_date, "%d/%d/%d %d:%d:%d", timenow.tm_year + 1900, timenow.tm_mon + 1, timenow.tm_mday, timenow.tm_hour, timenow.tm_min, timenow.tm_sec);
-        printf("%s", time_date);
-        printf("\r\n"); 
-        esp_mqtt_client_publish(client, "ADLDev-1/relay_status", time_date, 0, 1, 0);
         vTaskDelay(10000 / portTICK_PERIOD_MS);
     }
 }
